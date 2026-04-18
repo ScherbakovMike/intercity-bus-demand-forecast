@@ -61,7 +61,7 @@ MAPE_CRITICAL_THRESHOLD = 50.0  # % — выше → рекомендовать 
 SYNTHETIC_SEED = 42
 SYNTHETIC_N_ROUTES = 10
 SYNTHETIC_N_YEARS = 5
-SYNTHETIC_NOISE_LEVEL = 0.08
+SYNTHETIC_NOISE_LEVEL = 0.15
 
 # ── Визуализация ──────────────────────────────────────────────────────────────
 COLORS = {

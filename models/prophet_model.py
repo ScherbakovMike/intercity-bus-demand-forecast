@@ -61,7 +61,10 @@ class ProphetForecaster(BaseForecaster):
 
         self._model.fit(df, **kwargs)
         self._fitted = True
-        logger.info("[Prophet] Обучена на %d точках.", len(df))
+        logger.info(
+            "[Prophet] Обучена на %d точках. changepoint_prior=%.3f, mode=%s",
+            len(df), self.changepoint_prior_scale, self.seasonality_mode,
+        )
         return self
 
     def predict(self, horizon: int, **kwargs) -> np.ndarray:
@@ -101,7 +104,8 @@ class ProphetForecaster(BaseForecaster):
     def _add_holidays(self) -> None:
         """Добавляет российские праздники как events."""
         import pandas as pd
-        years = list(range(2019, 2030))
+        max_year = self._last_df["ds"].dt.year.max() + 3
+        years = list(range(2019, max(2030, max_year)))
         holidays = []
         for year in years:
             holidays += [

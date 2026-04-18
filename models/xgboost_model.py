@@ -97,7 +97,10 @@ class XGBoostForecaster(BaseForecaster):
         self._last_date = series.index[-1] if hasattr(series.index, "month") else None
         self._has_time_features = hasattr(series.index, "month")
         self._fitted = True
-        logger.info("[XGBoost] Обучен на %d наблюдениях.", len(y))
+        logger.info(
+            "[XGBoost] Обучен на %d наблюдениях. n_estimators=%d, max_depth=%d, lags=%s",
+            len(y), self.n_estimators, self.max_depth, self.lags,
+        )
         return self
 
     def predict(self, horizon: int, **kwargs) -> np.ndarray:
@@ -112,6 +115,9 @@ class XGBoostForecaster(BaseForecaster):
             raise RuntimeError("Модель не обучена.")
         lower = np.maximum(0, self._recursive_predict(horizon, self._model_lower))
         upper = np.maximum(0, self._recursive_predict(horizon, self._model_upper))
+        # Гарантируем lower ≤ upper (квантильные модели могут пересечься на малых выборках)
+        swap = lower > upper
+        lower[swap], upper[swap] = upper[swap], lower[swap]
         return lower, upper
 
     def _build_features(self, series: pd.Series) -> pd.DataFrame:
@@ -134,7 +140,7 @@ class XGBoostForecaster(BaseForecaster):
         for step in range(horizon):
             row = {}
             for lag in self.lags:
-                row[f"lag_{lag}"] = history[-lag] if len(history) >= lag else 0.0
+                row[f"lag_{lag}"] = history[-lag] if len(history) >= lag else history[0]
             if future_dates is not None:
                 m = future_dates[step].month
                 row["month_sin"] = np.sin(2 * np.pi * m / 12)

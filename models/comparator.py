@@ -78,7 +78,7 @@ class ModelComparator:
 
         series = df.set_index(date_col)[target_col].sort_index()
         train = series.iloc[:-self.test_size]
-        test = series.iloc[-self.test_size: -self.test_size + horizon] if horizon < self.test_size else series.iloc[-self.test_size:]
+        test = series.iloc[-self.test_size:]
 
         records = []
         for model in self.models:

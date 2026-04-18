@@ -92,7 +92,11 @@ class LSTMForecaster(BaseForecaster):
         )
         self._fitted = True
         final_loss = self._history.history["loss"][-1]
-        logger.info("[LSTM] Обучена: %d эпох, loss=%.4f", len(self._history.history["loss"]), final_loss)
+        logger.info(
+            "[LSTM] Обучена: %d эпох, loss=%.4f. units=%s, dropout=%.2f, lookback=%d",
+            len(self._history.history["loss"]), final_loss,
+            self.units, self.dropout, self.lookback,
+        )
         return self
 
     def predict(self, horizon: int, seed_sequence: Optional[np.ndarray] = None, **kwargs) -> np.ndarray:
