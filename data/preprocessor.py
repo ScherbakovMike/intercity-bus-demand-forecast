@@ -10,7 +10,6 @@ from typing import Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from statsmodels.tsa.seasonal import STL
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +106,7 @@ class Preprocessor:
 
         if self.fill_method == "stl" and len(df) >= 2 * self.seasonal_period:
             try:
+                from statsmodels.tsa.seasonal import STL
                 filled = df[col].interpolate(method="linear")
                 stl = STL(filled, period=self.seasonal_period, robust=True)
                 result = stl.fit()

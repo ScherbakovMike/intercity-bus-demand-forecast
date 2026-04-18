@@ -94,6 +94,8 @@ class XGBoostForecaster(BaseForecaster):
         self._model_upper.fit(X, y)
 
         self._last_values = series.values
+        self._last_date = series.index[-1] if hasattr(series.index, "month") else None
+        self._has_time_features = hasattr(series.index, "month")
         self._fitted = True
         logger.info("[XGBoost] Обучен на %d наблюдениях.", len(y))
         return self
@@ -126,10 +128,18 @@ class XGBoostForecaster(BaseForecaster):
     def _recursive_predict(self, horizon: int, model: XGBRegressor) -> np.ndarray:
         history = list(self._last_values)
         preds = []
-        for _ in range(horizon):
+        future_dates = None
+        if self._has_time_features and self._last_date is not None:
+            future_dates = pd.date_range(self._last_date, periods=horizon + 1, freq="MS")[1:]
+        for step in range(horizon):
             row = {}
             for lag in self.lags:
                 row[f"lag_{lag}"] = history[-lag] if len(history) >= lag else 0.0
+            if future_dates is not None:
+                m = future_dates[step].month
+                row["month_sin"] = np.sin(2 * np.pi * m / 12)
+                row["month_cos"] = np.cos(2 * np.pi * m / 12)
+                row["quarter"] = (m - 1) // 3 + 1
             x = pd.DataFrame([row])
             pred = model.predict(x)[0]
             preds.append(max(0.0, pred))
