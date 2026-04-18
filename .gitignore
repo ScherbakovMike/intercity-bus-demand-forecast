@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Данные (не коммитим большие файлы)
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.parquet
+*.feather
+
+# Сохранённые модели
+models/saved/
+*.pkl
+*.joblib
+*.h5
+*.keras
+*.pt
+
+# Отчёты
+reports/
+
+# Окружение
+.env
+*.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

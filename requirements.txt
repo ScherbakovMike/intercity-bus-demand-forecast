@@ -1,0 +1,44 @@
+# Прогнозирование пассажиропотока — зависимости
+# Python >= 3.10
+
+# Данные и вычисления
+numpy>=1.26
+pandas>=2.2
+scipy>=1.13
+
+# Временные ряды
+statsmodels>=0.14        # SARIMA, STL, ADF
+prophet>=1.1.5           # Meta Prophet
+pmdarima>=2.0            # auto_arima
+
+# Машинное обучение
+scikit-learn>=1.4
+xgboost>=2.0
+
+# Глубокое обучение
+tensorflow>=2.16
+keras>=3.0
+
+# API
+fastapi>=0.111
+uvicorn[standard]>=0.29
+pydantic>=2.7
+
+# Интерфейс
+streamlit>=1.35
+
+# База данных
+psycopg2-binary>=2.9
+sqlalchemy>=2.0
+
+# Визуализация
+matplotlib>=3.8
+plotly>=5.22
+seaborn>=0.13
+
+# Утилиты
+python-dotenv>=1.0
+tqdm>=4.66
+joblib>=1.4
+requests>=2.32
+openpyxl>=3.1          # чтение .xlsx (Росстат)
