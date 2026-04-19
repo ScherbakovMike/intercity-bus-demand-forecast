@@ -73,5 +73,8 @@ with tab3:
     st.dataframe(top, use_container_width=True, hide_index=True)
 
     fig3 = px.bar(top, x="Маршрут", y="Пассажиров за год",
-                  color="Пассажиров за год", color_continuous_scale="Blues")
+                  color_discrete_sequence=["#2980b9"], text_auto=True)
+    fig3.update_traces(marker_line_color="#1a5276", marker_line_width=1.2,
+                        textposition="outside")
+    fig3.update_layout(showlegend=False)
     st.plotly_chart(fig3, use_container_width=True)
