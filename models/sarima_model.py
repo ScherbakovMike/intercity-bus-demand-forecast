@@ -68,6 +68,14 @@ class SARIMAForecaster(BaseForecaster):
         self._train_std = float(series.std())
         self._fitted = True
         logger.info(
+            "[SARIMA.fit] series_len=%d, train_max=%.2f, train_std=%.2f, "
+            "order=%s, seasonal_order=%s, AIC=%.2f, converged=%s",
+            len(series), self._train_max, self._train_std,
+            self.order, self.seasonal_order,
+            self._model_fit.aic,
+            getattr(self._model_fit.mle_retvals, "converged", None) if self._model_fit.mle_retvals else None,
+        )
+        logger.info(
             "[SARIMA] Обучена: order=%s, seasonal_order=%s, AIC=%.2f",
             self.order, self.seasonal_order, self._model_fit.aic,
         )
@@ -90,21 +98,55 @@ class SARIMAForecaster(BaseForecaster):
         raw_upper = ci.iloc[:, 1].values
         point = np.maximum(0, pred.predicted_mean.values)
 
+        # --- DEBUG LOGS (to diagnose CI blow-up issues) ---
+        try:
+            logger.info("[SARIMA.CI] horizon=%d alpha=%.3f", horizon, alpha)
+            logger.info("[SARIMA.CI] raw_upper stats: min=%.2f max=%.2f mean=%.2f",
+                        float(np.nanmin(raw_upper)), float(np.nanmax(raw_upper)),
+                        float(np.nanmean(raw_upper)))
+            logger.info("[SARIMA.CI] raw_lower stats: min=%.2f max=%.2f mean=%.2f",
+                        float(np.nanmin(raw_lower)), float(np.nanmax(raw_lower)),
+                        float(np.nanmean(raw_lower)))
+            logger.info("[SARIMA.CI] point stats: min=%.2f max=%.2f mean=%.2f",
+                        float(np.nanmin(point)), float(np.nanmax(point)),
+                        float(np.nanmean(point)))
+            if hasattr(self, "_train_max") and hasattr(self, "_train_std"):
+                logger.info("[SARIMA.CI] train_max=%.2f train_std=%.2f",
+                            self._train_max, self._train_std)
+        except Exception as e:
+            logger.warning("[SARIMA.CI] debug logging failed: %s", e)
+
         # Sanity-check аналитического ДИ: если верхняя граница превышает
         # 5× максимума обучающей выборки — модель не сошлась (характерно
         # для длинных горизонтов при нестабильном MLE). Заменяем на
         # эмпирический ДИ point ± 2·σ_train, что устойчиво и интерпретируемо.
         if hasattr(self, '_train_max') and hasattr(self, '_train_std'):
             max_reasonable = self._train_max * 5.0
-            if np.any(raw_upper > max_reasonable) or np.any(np.abs(raw_lower) > max_reasonable):
+            blew_up = bool(np.any(raw_upper > max_reasonable)) or \
+                      bool(np.any(np.abs(raw_lower) > max_reasonable))
+            logger.info("[SARIMA.CI] blew_up=%s threshold=%.2f", blew_up, max_reasonable)
+            if blew_up:
                 # Fallback: эмпирический ДИ
                 sigma = max(self._train_std, 1.0)
                 lower = np.maximum(0, point - 2.0 * sigma)
                 upper = point + 2.0 * sigma
+                logger.warning(
+                    "[SARIMA.CI] Analytical CI diverged (max=%.2e > %.2f). "
+                    "Fallback to empirical CI: point ± 2·σ (σ=%.2f). "
+                    "Resulting upper: min=%.2f max=%.2f",
+                    float(np.nanmax(raw_upper)), max_reasonable, sigma,
+                    float(np.min(upper)), float(np.max(upper)),
+                )
                 return lower, upper
+        else:
+            logger.warning("[SARIMA.CI] train stats missing — fallback not applied. "
+                           "Did fit() complete successfully before this call?")
 
         lower = np.maximum(0, raw_lower)
         upper = np.maximum(0, raw_upper)
+        logger.info("[SARIMA.CI] Returning analytical CI: lower [%.2f..%.2f], upper [%.2f..%.2f]",
+                    float(np.min(lower)), float(np.max(lower)),
+                    float(np.min(upper)), float(np.max(upper)))
         return lower, upper
 
     def _check_stationarity(self, series: pd.Series) -> None:

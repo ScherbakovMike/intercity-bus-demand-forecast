@@ -6,6 +6,7 @@ of underlying modules so the UI remains functional for demos.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -14,6 +15,19 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 import requests
+
+# Настройка логов для UI: debug → консоль + файл logs/ui.log
+_LOG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "logs"))
+os.makedirs(_LOG_DIR, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s [%(name)s] %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(_LOG_DIR, "ui.log"), encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger("ui.api_client")
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 TIMEOUT = 120
@@ -72,20 +86,45 @@ class ApiClient:
 
     # ---------- Forecast ----------
     def forecast(self, route_id: int, model_type: str, horizon: int) -> dict:
-        if self._api_up():
+        logger.info("[forecast] request: route_id=%d model=%s horizon=%d",
+                    route_id, model_type, horizon)
+        api_up = self._api_up()
+        logger.info("[forecast] API up: %s (url=%s)", api_up, self.base_url)
+
+        if api_up:
             r = requests.post(
                 f"{self.base_url}/api/forecast/",
                 json={"route_id": route_id, "model_type": model_type, "horizon": horizon},
                 headers=self._headers(), timeout=TIMEOUT,
             )
+            logger.info("[forecast] API response: status=%d", r.status_code)
             if r.ok:
-                return r.json()
+                body = r.json()
+                if body.get("points"):
+                    pts = body["points"]
+                    logger.info(
+                        "[forecast] API returned %d points. "
+                        "Point range [%.2f..%.2f], Upper range [%.2f..%.2e]",
+                        len(pts),
+                        min(p["point"] for p in pts), max(p["point"] for p in pts),
+                        min(p["upper"] for p in pts), max(p["upper"] for p in pts),
+                    )
+                return body
+            else:
+                logger.warning("[forecast] API returned error: %s", r.text[:200])
         # Fallback to direct computation
+        logger.info("[forecast] Falling back to direct module computation")
         from reporter.common import compute_forecast
         try:
             data = compute_forecast(route_id, model_type, horizon)
         except ValueError as e:
+            logger.error("[forecast] compute_forecast raised: %s", e)
             return {"error": str(e)}
+        logger.info(
+            "[forecast] Direct computation: point [%.2f..%.2f], upper [%.2f..%.2e]",
+            float(data["forecast"].min()), float(data["forecast"].max()),
+            float(data["upper"].min()), float(data["upper"].max()),
+        )
         points = [{
             "month_offset": i + 1,
             "point": float(round(data["forecast"][i], 2)),
