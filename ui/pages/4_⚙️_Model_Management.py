@@ -39,7 +39,10 @@ with col1:
         key="mgr_route",
     )
 with col2:
-    model_type = st.selectbox("Модель", ["sarima", "xgboost"], key="mgr_model")
+    model_type = st.selectbox(
+        "Модель", ["sarima", "xgboost", "prophet", "lstm"], key="mgr_model",
+        help="Требует prophet/tensorflow-cpu для Prophet/LSTM",
+    )
 
 st.subheader("Гиперпараметры")
 params = {}

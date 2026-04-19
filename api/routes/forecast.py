@@ -47,12 +47,20 @@ def forecast(req: ForecastRequest, _user: dict = Depends(get_current_user)):
         model = SARIMAForecaster()
     elif req.model_type == "xgboost":
         model = XGBoostForecaster(n_estimators=200, n_splits=3)
-    elif req.model_type in ("prophet", "lstm"):
-        raise HTTPException(
-            status_code=503,
-            detail=(f"Модель {req.model_type} не установлена в окружении. "
-                    f"Используйте sarima или xgboost."),
-        )
+    elif req.model_type == "prophet":
+        try:
+            from models.prophet_model import ProphetForecaster
+            model = ProphetForecaster()
+        except ImportError as e:
+            raise HTTPException(status_code=503,
+                                detail=f"Prophet не установлен: {e}")
+    elif req.model_type == "lstm":
+        try:
+            from models.lstm_model import LSTMForecaster
+            model = LSTMForecaster()
+        except ImportError as e:
+            raise HTTPException(status_code=503,
+                                detail=f"LSTM (tensorflow-cpu) не установлен: {e}")
     else:
         raise HTTPException(status_code=400, detail=f"Неизвестная модель {req.model_type}")
 

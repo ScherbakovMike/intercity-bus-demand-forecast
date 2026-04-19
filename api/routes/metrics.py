@@ -26,14 +26,26 @@ def get_metrics(
     test = series.iloc[-test_size:].values.astype(float)
 
     results: list[MetricsOut] = []
-    models_to_evaluate = [model_type] if model_type else ["sarima", "xgboost"]
+    models_to_evaluate = [model_type] if model_type else ["sarima", "xgboost", "prophet", "lstm"]
     for mt in models_to_evaluate:
         if mt == "sarima":
             m = SARIMAForecaster()
         elif mt == "xgboost":
             m = XGBoostForecaster(n_estimators=200, n_splits=3)
+        elif mt == "prophet":
+            try:
+                from models.prophet_model import ProphetForecaster
+                m = ProphetForecaster()
+            except ImportError:
+                continue  # skip silently in multi-model comparison
+        elif mt == "lstm":
+            try:
+                from models.lstm_model import LSTMForecaster
+                m = LSTMForecaster()
+            except ImportError:
+                continue
         else:
-            raise HTTPException(status_code=503, detail=f"Модель {mt} не установлена")
+            raise HTTPException(status_code=503, detail=f"Модель {mt} неизвестна")
         m.fit(train)
         pred = np.asarray(m.predict(horizon=test_size))
         metrics = m.evaluate(test, pred)

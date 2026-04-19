@@ -10,9 +10,9 @@ statsmodels>=0.14
 pmdarima>=2.0
 xgboost>=2.0
 
-# --- Optional ML (commented out to keep install light) ---
-# prophet>=1.1.5
-# tensorflow-cpu>=2.16
+# --- Optional ML ---
+prophet>=1.1.5
+tensorflow-cpu>=2.16; platform_system != "Darwin" or platform_machine != "arm64"
 
 # --- Database & ORM ---
 sqlalchemy>=2.0

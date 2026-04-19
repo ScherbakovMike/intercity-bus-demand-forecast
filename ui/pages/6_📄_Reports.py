@@ -40,7 +40,7 @@ with st.form("report_form"):
             format_func=lambda rid: next((r["name"] for r in routes if r["route_id"] == rid), str(rid)),
         )
     with c2:
-        model_type = st.selectbox("Модель", ["sarima", "xgboost"])
+        model_type = st.selectbox("Модель", ["sarima", "xgboost", "prophet", "lstm"])
     with c3:
         horizon = st.slider("Горизонт", 3, 24, 12)
     with c4:

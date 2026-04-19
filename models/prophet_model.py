@@ -115,4 +115,6 @@ class ProphetForecaster(BaseForecaster):
                 {"holiday": "Майские", "ds": f"{year}-05-01", "lower_window": -1, "upper_window": 3},
                 {"holiday": "День России", "ds": f"{year}-06-12", "lower_window": 0, "upper_window": 1},
             ]
-        self._model.holidays = pd.DataFrame(holidays)
+        hol_df = pd.DataFrame(holidays)
+        hol_df["ds"] = pd.to_datetime(hol_df["ds"])
+        self._model.holidays = hol_df

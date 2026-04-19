@@ -74,7 +74,12 @@ class LSTMForecaster(BaseForecaster):
         if not TF_AVAILABLE:
             raise ImportError("TensorFlow не установлен: pip install tensorflow")
 
-        X, y = self._make_sequences(series.values)
+        # MinMaxScaler to [0, 1] for stable training of the network
+        from sklearn.preprocessing import MinMaxScaler
+        self._scaler = MinMaxScaler()
+        scaled = self._scaler.fit_transform(series.values.reshape(-1, 1)).ravel()
+
+        X, y = self._make_sequences(scaled)
         self._model = self._build_model(X.shape[1], X.shape[2])
 
         early_stop = keras.callbacks.EarlyStopping(
@@ -91,6 +96,8 @@ class LSTMForecaster(BaseForecaster):
             **kwargs,
         )
         self._fitted = True
+        # Cache scaled last-values so predict can extend
+        self._last_values = scaled[-self.lookback:]
         final_loss = self._history.history["loss"][-1]
         logger.info(
             "[LSTM] Обучена: %d эпох, loss=%.4f. units=%s, dropout=%.2f, lookback=%d",
@@ -102,6 +109,8 @@ class LSTMForecaster(BaseForecaster):
     def predict(self, horizon: int, seed_sequence: Optional[np.ndarray] = None, **kwargs) -> np.ndarray:
         if not self._fitted:
             raise RuntimeError("Модель не обучена.")
+        if seed_sequence is None:
+            seed_sequence = self._last_values
         return self._recursive_forecast(horizon, seed_sequence, stochastic=False)
 
     def get_confidence_intervals(
@@ -111,6 +120,9 @@ class LSTMForecaster(BaseForecaster):
         """MC Dropout: N стохастических прогонов → перцентильные интервалы."""
         if not self._fitted:
             raise RuntimeError("Модель не обучена.")
+
+        if seed_sequence is None:
+            seed_sequence = self._last_values
 
         mc_samples = np.array([
             self._recursive_forecast(horizon, seed_sequence, stochastic=True)
@@ -153,16 +165,28 @@ class LSTMForecaster(BaseForecaster):
     def _recursive_forecast(
         self, horizon: int, seed: Optional[np.ndarray], stochastic: bool
     ) -> np.ndarray:
-        """Авторегрессионный (рекурсивный) прогноз на horizon шагов."""
+        """Авторегрессионный (рекурсивный) прогноз на horizon шагов.
+
+        Returns values in the ORIGINAL passenger-count scale.
+        """
         if seed is None:
             raise ValueError("Передайте seed_sequence — последние lookback значений ряда.")
-        window = seed[-self.lookback:].copy()
-        preds = []
+        # If raw (unscaled) seed came in, scale it first
+        if hasattr(self, "_scaler") and (seed.max() > 1.5 or seed.min() < -0.5):
+            seed_scaled = self._scaler.transform(seed.reshape(-1, 1)).ravel()
+        else:
+            seed_scaled = seed.astype(float)
+        window = seed_scaled[-self.lookback:].copy()
+        preds_scaled = []
         for _ in range(horizon):
             x = window.reshape(1, self.lookback, 1).astype("float32")
-            # training=True активирует Dropout при инференсе (MC Dropout)
-            pred = self._model(x, training=stochastic).numpy().ravel()[0]
-            preds.append(pred)
+            pred = float(self._model(x, training=stochastic).numpy().ravel()[0])
+            preds_scaled.append(pred)
             window = np.roll(window, -1)
             window[-1] = pred
-        return np.maximum(0, np.array(preds))
+        preds_scaled = np.array(preds_scaled)
+        if hasattr(self, "_scaler"):
+            preds = self._scaler.inverse_transform(preds_scaled.reshape(-1, 1)).ravel()
+        else:
+            preds = preds_scaled
+        return np.maximum(0, preds)

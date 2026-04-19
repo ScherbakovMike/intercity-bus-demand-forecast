@@ -117,11 +117,16 @@ def test_forecast_xgboost(client, auth_headers):
     assert len(body["points"]) == 3
 
 
-def test_forecast_missing_library(client, auth_headers):
+def test_forecast_prophet_or_missing(client, auth_headers):
+    """Prophet returns 200 if installed, 503 otherwise."""
     r = client.post("/api/forecast/",
                     json={"route_id": 1, "model_type": "prophet", "horizon": 6},
                     headers=auth_headers)
-    assert r.status_code == 503
+    assert r.status_code in (200, 503), f"Unexpected status: {r.status_code}"
+    if r.status_code == 200:
+        body = r.json()
+        assert len(body["points"]) == 6
+        assert all(p["point"] >= 0 for p in body["points"])
 
 
 def test_forecast_unauthorized(client):
@@ -136,7 +141,10 @@ def test_metrics_all_models(client, auth_headers):
     r = client.get("/api/metrics/?route_id=1", headers=auth_headers)
     assert r.status_code == 200
     results = r.json()
-    assert len(results) == 2  # sarima + xgboost
+    # 2 if only sarima+xgboost available, 3 with prophet, 4 with lstm
+    assert 2 <= len(results) <= 4, f"Expected 2-4 models, got {len(results)}"
+    model_types = {m["model_type"] for m in results}
+    assert "sarima" in model_types and "xgboost" in model_types
     for m in results:
         assert m["mape"] >= 0
         assert m["mae"] >= 0

@@ -36,7 +36,12 @@ with col1:
         key="route_id_select",
     )
 with col2:
-    model_type = st.selectbox("Модель", ["sarima", "xgboost"], key="model_select")
+    model_type = st.selectbox(
+        "Модель",
+        ["sarima", "xgboost", "prophet", "lstm"],
+        key="model_select",
+        help="Prophet и LSTM требуют установленных библиотек prophet/tensorflow-cpu",
+    )
 with col3:
     horizon = st.slider("Горизонт (мес.)", 3, 24, 12, key="horizon_slider")
 
