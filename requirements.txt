@@ -1,44 +1,52 @@
-# Прогнозирование пассажиропотока — зависимости
+# Intercity Bus Demand Forecast — dependencies
 # Python >= 3.10
 
-# Данные и вычисления
+# --- Core data & ML ---
 numpy>=1.26
 pandas>=2.2
 scipy>=1.13
-
-# Временные ряды
-statsmodels>=0.14        # SARIMA, STL, ADF
-prophet>=1.1.5           # Meta Prophet
-pmdarima>=2.0            # auto_arima
-
-# Машинное обучение
 scikit-learn>=1.4
+statsmodels>=0.14
+pmdarima>=2.0
 xgboost>=2.0
 
-# Глубокое обучение
-tensorflow>=2.16
-keras>=3.0
+# --- Optional ML (commented out to keep install light) ---
+# prophet>=1.1.5
+# tensorflow-cpu>=2.16
 
-# API
+# --- Database & ORM ---
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+alembic>=1.13
+
+# --- REST API ---
 fastapi>=0.111
 uvicorn[standard]>=0.29
 pydantic>=2.7
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+python-multipart>=0.0.9
 
-# Интерфейс
-streamlit>=1.35
-
-# База данных
-psycopg2-binary>=2.9
-sqlalchemy>=2.0
-
-# Визуализация
-matplotlib>=3.8
+# --- UI ---
+streamlit>=1.36
 plotly>=5.22
+
+# --- Visualization ---
+matplotlib>=3.8
 seaborn>=0.13
 
-# Утилиты
+# --- Reports ---
+reportlab>=4.1
+python-docx>=1.1
+
+# --- Utilities ---
 python-dotenv>=1.0
 tqdm>=4.66
 joblib>=1.4
 requests>=2.32
-openpyxl>=3.1          # чтение .xlsx (Росстат)
+openpyxl>=3.1
+
+# --- Testing ---
+pytest>=7.4
+pytest-asyncio>=0.23
+httpx>=0.27

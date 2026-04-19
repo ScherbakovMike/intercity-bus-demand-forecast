@@ -4,6 +4,32 @@
 
 **Context.** The project was developed as a bachelor's thesis in Information Systems and Technologies (field 09.03.02) at Moscow Technological Institute, 2026. Designed in the context of FSAU "TsITiS" (Federal State Autonomous Scientific Institution "Center for Information Technologies and Systems") as an example of an applied system for regional transport operators.
 
+📘 **[Full User Guide →](docs/USER_GUIDE.md)**
+
+![Dashboard screenshot](docs/screenshots/ui_03_dashboard.png)
+
+---
+
+## Implementation status
+
+| Component | Status | Details |
+|---|---|---|
+| 4 ML forecasters (SARIMA, XGBoost) | ✅ Implemented | Fully runnable, tested |
+| 4 ML forecasters (Prophet, LSTM) | ✅ Implemented (optional) | Require `prophet` / `tensorflow-cpu` to be installed |
+| `ModelComparator` | ✅ Implemented | Automatic best-model selection |
+| Synthetic data generator | ✅ Implemented | 5 rural routes, calibrated by Rosstat |
+| FastAPI REST backend | ✅ Implemented | 5 endpoints + JWT auth + RBAC |
+| Streamlit UI (7 pages) | ✅ Implemented | All buttons functional, role-based access |
+| PostgreSQL schema | ✅ Implemented | 13 entities + `schema.sql` + SQLAlchemy ORM |
+| Alembic migrations | ✅ Implemented | `alembic upgrade head` |
+| Docker Compose | ✅ Implemented | `docker compose up -d` |
+| Reporter (PDF + DOCX) | ✅ Implemented | ReportLab + python-docx |
+| Unit tests | ✅ 14 tests | Core ML + comparator |
+| API integration tests | ✅ 21 tests | All endpoints |
+| UI tests | ✅ 13 tests | Streamlit testing framework |
+
+**Total: 48/48 tests passing.**
+
 ---
 
 ## Table of Contents
