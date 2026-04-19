@@ -5,7 +5,7 @@ import sys
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
-"""Models Comparison — сравнительный анализ SARIMA vs XGBoost по метрикам."""
+"""Models Comparison — сравнительный анализ SARIMA, Prophet, LSTM, XGBoost по метрикам."""
 
 import pandas as pd
 import plotly.express as px
@@ -20,7 +20,7 @@ if not st.session_state.get("token"):
     st.stop()
 
 st.title("⚖️ Сравнительный анализ моделей")
-st.caption("Сравнение SARIMA и XGBoost на hold-out выборке по метрикам MAE, RMSE, MAPE, R².")
+st.caption("Сравнение SARIMA, Prophet, LSTM и XGBoost на hold-out выборке по метрикам MAE, RMSE, MAPE, R².")
 
 client = get_client()
 client.token = st.session_state.token
@@ -66,14 +66,20 @@ if st.button("📊 Запустить сравнение", type="primary", key="
         with col_a:
             fig = px.bar(df_m, x="model_type", y="mape", color="model_type",
                          title="MAPE, %", text_auto=".2f",
-                         color_discrete_map={"SARIMA": "#2980b9", "XGBOOST": "#e67e22"})
+                         color_discrete_map={
+                             "SARIMA": "#2980b9", "XGBOOST": "#e67e22",
+                             "PROPHET": "#27ae60", "LSTM": "#8e44ad",
+                         })
             fig.update_layout(showlegend=False, height=340)
             st.plotly_chart(fig, use_container_width=True)
 
         with col_b:
             fig2 = px.bar(df_m, x="model_type", y="rmse", color="model_type",
                           title="RMSE, чел.", text_auto=".0f",
-                          color_discrete_map={"SARIMA": "#2980b9", "XGBOOST": "#e67e22"})
+                          color_discrete_map={
+                             "SARIMA": "#2980b9", "XGBOOST": "#e67e22",
+                             "PROPHET": "#27ae60", "LSTM": "#8e44ad",
+                         })
             fig2.update_layout(showlegend=False, height=340)
             st.plotly_chart(fig2, use_container_width=True)
 
