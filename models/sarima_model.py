@@ -63,6 +63,9 @@ class SARIMAForecaster(BaseForecaster):
             enforce_invertibility=False,
         )
         self._model_fit = model.fit(disp=False, **kwargs)
+        # Cache train-series stats for CI sanitization
+        self._train_max = float(series.max())
+        self._train_std = float(series.std())
         self._fitted = True
         logger.info(
             "[SARIMA] Обучена: order=%s, seasonal_order=%s, AIC=%.2f",
@@ -83,8 +86,25 @@ class SARIMAForecaster(BaseForecaster):
             raise RuntimeError("Модель не обучена.")
         pred = self._model_fit.get_forecast(steps=horizon, exog=exog)
         ci = pred.conf_int(alpha=alpha)
-        lower = np.maximum(0, ci.iloc[:, 0].values)
-        upper = np.maximum(0, ci.iloc[:, 1].values)
+        raw_lower = ci.iloc[:, 0].values
+        raw_upper = ci.iloc[:, 1].values
+        point = np.maximum(0, pred.predicted_mean.values)
+
+        # Sanity-check аналитического ДИ: если верхняя граница превышает
+        # 5× максимума обучающей выборки — модель не сошлась (характерно
+        # для длинных горизонтов при нестабильном MLE). Заменяем на
+        # эмпирический ДИ point ± 2·σ_train, что устойчиво и интерпретируемо.
+        if hasattr(self, '_train_max') and hasattr(self, '_train_std'):
+            max_reasonable = self._train_max * 5.0
+            if np.any(raw_upper > max_reasonable) or np.any(np.abs(raw_lower) > max_reasonable):
+                # Fallback: эмпирический ДИ
+                sigma = max(self._train_std, 1.0)
+                lower = np.maximum(0, point - 2.0 * sigma)
+                upper = point + 2.0 * sigma
+                return lower, upper
+
+        lower = np.maximum(0, raw_lower)
+        upper = np.maximum(0, raw_upper)
         return lower, upper
 
     def _check_stationarity(self, series: pd.Series) -> None:
